@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# Edited 23/3/2019
+
+# Paste in ao3 url and state option from alltags, relationship_lite
+
+### ------------  SET VARIABLES BELOW  ------------
+
+# url = 'insert url here'
+url = 'https://archiveofourown.org/works/18195686'
+
+#state option: alltags, relationship_lite
+option = 'relationship_lite'
+
+#state how many freeform tags you want in output
+maxtags = 3
+
+### ------------  DO NOT EDIT  ------------
+
+import requests
+from bs4 import BeautifulSoup
+from bs4 import SoupStrainer
+
+def create_soup(url):
+    doc = requests.get(url)
+    print('If output says 200 then url imported correctly')
+    print(doc)
+
+    #create soup
+    only_meta_tags = SoupStrainer(class_="work meta group")
+    meta_soup = BeautifulSoup(doc.content, "html.parser", parse_only=only_meta_tags)
+    
+    return meta_soup    
+
+
+def find_length(soup):
+    x = soup.find(class_="words").next_sibling.get_text()
+    #print('words: ',x)
+    
+    #word count cases
+    x = int(x)
+    if x < 1000:
+        length = "words<1000"
+    if x > 1000 and x < 5000:  
+        length = "words:1001-5000"
+    if x > 5000 and x < 20000:
+        length = "words:5001-20000"
+    if x > 20000:
+        length = "words>20000"
+        
+    #print(length)
+    return length        
+
+
+def find_alltags(soup):
+    tag_list = []    
+    for tags in soup.find_all(class_="tag"):
+        tag = tags.get_text()
+        tag_list.append(tag)
+
+    return tag_list   
+
+
+
+def find_relationship_lite(soup, maxtags):
+    tags = []
+
+    relationship_tags = soup.find('dd', class_= "relationship tags")
+    first_relationship_tag = relationship_tags.a
+    tags.append(first_relationship_tag.get_text())  
+
+    rating = soup.find('dd', class_ = "rating tags")
+    first_rating_tag = rating.a
+    tags.append(first_rating_tag.get_text())
+
+    freeform_tags = soup.find('dd', class_="freeform tags")
+    for desc_tags in freeform_tags.find_all('a', limit = maxtags):
+        current = desc_tags.get_text()
+        tags.append(current)
+    
+    return tags 
+
+
+#choosing function
+def overview_function(url, option, maxtags):
+    meta_soup = create_soup(url)
+
+    if option == 'alltags':
+        tag_list = find_alltags(meta_soup)
+    if option == 'relationship_lite':
+        tag_list = find_relationship_lite(meta_soup, maxtags)
+    else :
+        print('unable to get tags') 
+        print('choose option: alltags, relationship_lite')
+        return 
+
+    length = find_length(meta_soup)
+    tag_list.append(length)
+
+    print('Copy and paste the following tags into the ao3 search bar do not include the square brakets')
+    print(tag_list)
+    return 
+
+
+#run function
+overview_function(url = url, option = option, maxtags = maxtags)
